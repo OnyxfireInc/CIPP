@@ -22,6 +22,7 @@ import { CippFormTenantSelector } from "../CippComponents/CippFormTenantSelector
 import { Sync, SyncAlt } from "@mui/icons-material";
 import { CippFormComponent } from "../CippComponents/CippFormComponent";
 import { CippApiResults } from "../CippComponents/CippApiResults";
+import { ApiGetCallWithPagination } from "../../api/ApiCall";
 
 const CippIntegrationSettings = ({ children }) => {
   const router = useRouter();
@@ -35,7 +36,7 @@ const CippIntegrationSettings = ({ children }) => {
     queryKey: `IntegrationTenantMapping-${router.query.id}`,
   });
 
-  const tenantList = ApiGetCall({
+  const tenantList = ApiGetCallWithPagination({
     url: "/api/ListTenants",
     data: { AllTenantSelector: false },
     queryKey: "ListTenants-notAllTenants",
@@ -81,13 +82,14 @@ const CippIntegrationSettings = ({ children }) => {
     const selectedTenant = formControl.getValues("tenantFilter");
     const selectedCompany = formControl.getValues("integrationCompany");
     if (!selectedTenant || !selectedCompany) return;
-    if (tableData?.find((item) => item.TenantId === selectedTenant.value)) return;
+    if (tableData?.find((item) => item.TenantId === selectedTenant.addedFields.customerId)) return;
 
     const newRowData = {
       TenantId: selectedTenant.value,
       Tenant: selectedTenant.label,
       IntegrationName: selectedCompany.label,
       IntegrationId: selectedCompany.value,
+      TenantDomain: selectedTenant.addedFields.defaultDomainName,
     };
 
     setTableData([...tableData, newRowData]);
@@ -95,7 +97,7 @@ const CippIntegrationSettings = ({ children }) => {
 
   const handleAutoMap = () => {
     const newTableData = [];
-    tenantList.data.forEach((tenant) => {
+    tenantList.data?.pages[0]?.forEach((tenant) => {
       const matchingCompany = mappings.data.Companies.find(
         (company) => company.name === tenant.displayName
       );
@@ -108,6 +110,7 @@ const CippIntegrationSettings = ({ children }) => {
         newTableData.push({
           TenantId: tenant.customerId,
           Tenant: tenant.displayName,
+          TenantDomain: tenant.defaultDomainName,
           IntegrationName: matchingCompany.name,
           IntegrationId: matchingCompany.value,
         });
@@ -139,7 +142,7 @@ const CippIntegrationSettings = ({ children }) => {
 
   useEffect(() => {
     if (mappings.isSuccess) {
-      setTableData(mappings.data.Mappings);
+      setTableData(mappings.data.Mappings ?? []);
     }
   }, [mappings.isSuccess]);
 
@@ -166,6 +169,8 @@ const CippIntegrationSettings = ({ children }) => {
                     multiple={false}
                     required={false}
                     disableClearable={false}
+                    removeOptions={tableData.map((item) => item.TenantId)}
+                    valueField="customerId"
                   />
                 </Box>
               </Grid>
@@ -192,6 +197,7 @@ const CippIntegrationSettings = ({ children }) => {
                   creatable={false}
                   multiple={false}
                   isFetching={mappings.isFetching}
+                  sortOptions={true}
                 />
               </Grid>
               <Grid item>
@@ -234,7 +240,7 @@ const CippIntegrationSettings = ({ children }) => {
                 reportTitle={`${extension.id}-tenant-map`}
                 data={tableData}
                 simple={false}
-                simpleColumns={["Tenant", "IntegrationName"]}
+                simpleColumns={["IntegrationName", "Tenant", "TenantDomain"]}
                 isFetching={mappings.isFetching}
                 refreshFunction={() => mappings.refetch()}
               />

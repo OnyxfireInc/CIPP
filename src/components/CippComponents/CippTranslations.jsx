@@ -42,4 +42,8 @@ export const CippTranslations = {
   ToIP: "To IP",
   "info.logoUrl": "Logo",
   "commitmentTerm.renewalConfiguration.renewalDate": "Renewal Date",
+  storageUsedInBytes: "Storage Used",
+  prohibitSendReceiveQuotaInBytes: "Quota",
+  ClientId: "Client ID",
+  html_url: "URL",
 };
