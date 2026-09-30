@@ -1,9 +1,9 @@
-import React from "react";
 import { Button, SvgIcon } from "@mui/material";
+import { CippIcons } from "../../utils/icon-registry"
 import { CippTablePage } from "../CippComponents/CippTablePage.jsx";
-import { Sync, Block, PlayArrow, RestartAlt, Delete, Add } from "@mui/icons-material";
 import { useDialog } from "../../hooks/use-dialog";
 import { CippApiDialog } from "../CippComponents/CippApiDialog";
+import cacheTypes from "../../data/CIPPDBCacheTypes.json";
 
 export const CippTenantTable = ({
   title = "Tenants",
@@ -23,7 +23,7 @@ export const CippTenantTable = ({
       label: "Exclude Tenants",
       type: "POST",
       url: `/api/ExecExcludeTenant?AddExclusion=true`,
-      icon: <Block />,
+      icon: <CippIcons.Block />,
       data: { value: "customerId" },
       confirmText: "Are you sure you want to exclude [displayName]?",
       multiPost: false,
@@ -33,7 +33,7 @@ export const CippTenantTable = ({
       label: "Include Tenants",
       type: "POST",
       url: `/api/ExecExcludeTenant?RemoveExclusion=true`,
-      icon: <Add />,
+      icon: <CippIcons.Add />,
       data: { value: "customerId" },
       confirmText: "Are you sure you want to include [displayName]?",
       multiPost: false,
@@ -43,7 +43,7 @@ export const CippTenantTable = ({
       label: "Refresh CPV Permissions",
       type: "POST",
       url: `/api/ExecCPVPermissions`,
-      icon: <PlayArrow />,
+      icon: <CippIcons.PlayArrow />,
       data: { tenantFilter: "customerId" },
       confirmText: "Are you sure you want to refresh the CPV permissions for [displayName]?",
       multiPost: false,
@@ -52,7 +52,7 @@ export const CippTenantTable = ({
       label: "Reset CPV Permissions",
       type: "POST",
       url: `/api/ExecCPVPermissions?&ResetSP=true`,
-      icon: <RestartAlt />,
+      icon: <CippIcons.RestartAlt />,
       data: { tenantFilter: "customerId" },
       confirmText:
         "Are you sure you want to reset the CPV permissions for [displayName]? (This will delete the Service Principal and re-add it.)",
@@ -64,12 +64,47 @@ export const CippTenantTable = ({
       label: "Remove Tenant",
       type: "POST",
       url: `/api/ExecRemoveTenant`,
-      icon: <Delete />,
+      icon: <CippIcons.Delete />,
       data: { TenantID: "customerId" },
       confirmText:
         "Are you sure you want to remove [displayName]? If this is a Direct Tenant, this will no longer be accessible until you add it via the Setup Wizard.",
       multiPost: false,
       condition: (row) => row.displayName !== "*Partner Tenant",
+    },
+    {
+      label: "Refresh CIPPDB Cache",
+      type: "GET",
+      url: `/api/ExecCIPPDBCache`,
+      icon: <CippIcons.Refresh />,
+      data: { Name: "Name", TenantFilter: "customerId" },
+      confirmText: "Select the cache type to refresh for [displayName]:",
+      multiPost: false,
+      allowResubmit: true,
+      hideBulk: true,
+      fields: [
+        {
+          type: "autoComplete",
+          name: "Name",
+          label: "Cache Type",
+          placeholder: "Select a cache type",
+          options: cacheTypes.map((cacheType) => ({
+            label: cacheType.friendlyName,
+            value: cacheType.type,
+            description: cacheType.description,
+          })),
+          multiple: false,
+          creatable: false,
+          required: true,
+        },
+      ],
+      customDataformatter: (rowData, actionData, formData) => {
+        const tenantFilter = rowData?.defaultDomainName || rowData?.customerId || "";
+        const cacheTypeName = formData.Name?.value || formData.Name || "";
+        return {
+          Name: cacheTypeName,
+          TenantFilter: tenantFilter,
+        };
+      },
     },
   ];
 
@@ -116,6 +151,7 @@ export const CippTenantTable = ({
     <>
       <CippTablePage
         title={title}
+        queryKey="tenants-table"
         cardButton={
           showCardButton ? (
             <Button
@@ -125,7 +161,7 @@ export const CippTenantTable = ({
               onClick={onRefreshButtonClick || createDialog.handleOpen}
             >
               <SvgIcon fontSize="small" style={{ marginRight: 4 }}>
-                <Sync />
+                <CippIcons.Sync />
               </SvgIcon>
               Force Refresh
             </Button>
@@ -159,6 +195,7 @@ export const CippTenantTable = ({
             type: "GET",
             data: { TriggerRefresh: "!true" },
             replacementBehaviour: "removeNulls",
+            relatedQueryKeys: ["tenants-table", "TenantSelector"],
           }}
         />
       )}

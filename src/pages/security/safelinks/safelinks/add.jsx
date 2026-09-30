@@ -1,9 +1,9 @@
 import { Box } from "@mui/material";
-import CippFormPage from "/src/components/CippFormPages/CippFormPage";
-import { Layout as DashboardLayout } from "/src/layouts/index.js";
+import CippFormPage from "../../../../components/CippFormPages/CippFormPage";
+import { Layout as DashboardLayout } from "../../../../layouts/index";
 import { useForm, useWatch } from "react-hook-form";
-import { useSettings } from "/src/hooks/use-settings";
-import { SafeLinksForm, safeLinksDataUtils } from "/src/components/CippFormPages/CippSafeLinksPolicyRuleForm";
+import { useSettings } from "../../../../hooks/use-settings";
+import { SafeLinksForm, safeLinksDataUtils } from "../../../../components/CippFormPages/CippSafeLinksPolicyRuleForm";
 
 const Page = () => {
   const userSettingsDefaults = useSettings();
@@ -47,6 +47,6 @@ const Page = () => {
   );
 };
 
-Page.getLayout = (page) => <DashboardLayout>{page}</DashboardLayout>;
+Page.getLayout = (page) => <DashboardLayout allTenantsSupport={false}>{page}</DashboardLayout>;
 
 export default Page;

@@ -1,4 +1,5 @@
 import { differenceInDays } from "date-fns";
+import { CippIcons } from "../../utils/icon-registry";
 import {
   Dialog,
   DialogActions,
@@ -30,16 +31,6 @@ import {
   ListItemSecondaryAction,
 } from "@mui/material";
 import { Grid } from "@mui/system";
-import {
-  Add,
-  Sort,
-  Clear,
-  FilterList,
-  ExpandMore,
-  ExpandLess,
-  ViewModule,
-  ViewList,
-} from "@mui/icons-material";
 import { useState, useCallback, useMemo, memo, useEffect } from "react";
 import { debounce } from "lodash";
 import { Virtuoso } from "react-virtuoso";
@@ -83,7 +74,7 @@ const StandardCard = memo(
             observer.disconnect();
           }
         },
-        { threshold: 0.1 }
+        { threshold: 0.1 },
       );
 
       const currentRef = document.getElementById(`standard-card-${standard.name}`);
@@ -102,9 +93,6 @@ const StandardCard = memo(
             height: "100%",
             display: "flex",
             flexDirection: "column",
-            ...(isNewStandard(standard.addedDate) && {
-              mt: 1.2, // Add top margin to accommodate the "New" label
-            }),
           }}
         >
           {isNewStandard(standard.addedDate) && (
@@ -123,6 +111,22 @@ const StandardCard = memo(
               }}
             />
           )}
+          {standard.deprecated && (
+            <Chip
+              label="Deprecated"
+              size="small"
+              color="error"
+              sx={{
+                position: "absolute",
+                top: -10,
+                right: 12,
+                zIndex: 1,
+                fontSize: "0.7rem",
+                height: 20,
+                fontWeight: "bold",
+              }}
+            />
+          )}
           <Card
             id={`standard-card-${standard.name}`}
             sx={{
@@ -131,10 +135,16 @@ const StandardCard = memo(
               height: "100%",
               flex: 1,
               position: "relative",
-              ...(isNewStandard(standard.addedDate) && {
+              ...(standard.deprecated && {
                 border: "2px solid",
-                borderColor: "success.main",
+                borderColor: "error.main",
+                opacity: 0.7,
               }),
+              ...(isNewStandard(standard.addedDate) &&
+                !standard.deprecated && {
+                  border: "2px solid",
+                  borderColor: "success.main",
+                }),
             }}
           >
             <CardContent sx={{ flexGrow: 1, pt: 3, pb: 1 }}>
@@ -214,8 +224,8 @@ const StandardCard = memo(
                   standard.impact === "High Impact"
                     ? "error"
                     : standard.impact === "Medium Impact"
-                    ? "warning"
-                    : "info"
+                      ? "warning"
+                      : "info"
                 }
               />
               {expanded && standard.recommendedBy?.length > 0 && (
@@ -223,7 +233,9 @@ const StandardCard = memo(
                   <Typography variant="subtitle2" sx={{ mt: 2 }}>
                     Recommended By:
                   </Typography>
-                  <Typography variant="body2" color="textSecondary" paragraph>
+                  <Typography variant="body2" color="textSecondary" sx={{
+                    marginBottom: "16px"
+                  }}>
                     {standard.recommendedBy.join(", ")}
                   </Typography>
                 </>
@@ -243,13 +255,40 @@ const StandardCard = memo(
             </CardContent>
 
             <CardContent sx={{ pt: 1, pb: 2 }}>
-              {standard.multiple ? (
+              {standard.deprecated ? (
+                <Box>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={isSelected}
+                        onChange={handleToggle}
+                        color="primary"
+                        edge="start"
+                        size="medium"
+                        disableRipple
+                        disabled={!isSelected}
+                      />
+                    }
+                    label={
+                      isSelected
+                        ? "Remove this standard from the template"
+                        : "This standard is deprecated"
+                    }
+                  />
+                  {!isSelected && (
+                    <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                      This standard is deprecated and cannot be added. Please use an alternative
+                      standard if available.
+                    </Typography>
+                  )}
+                </Box>
+              ) : standard.multiple ? (
                 <IconButton
                   color="primary"
                   disabled={isButtonDisabled}
                   onClick={() => handleAddClick(standard.name)}
                 >
-                  <Add />
+                  <CippIcons.Add />
                 </IconButton>
               ) : (
                 <FormControlLabel
@@ -263,6 +302,7 @@ const StandardCard = memo(
                       size="medium"
                       // Disable animation for better performance
                       disableRipple
+                      disabled={isButtonDisabled}
                     />
                   }
                   label="Add this standard to the template"
@@ -287,7 +327,7 @@ const StandardCard = memo(
 
     // If we get here, nothing important changed, skip re-render
     return true;
-  }
+  },
 );
 
 StandardCard.displayName = "StandardCard";
@@ -295,7 +335,7 @@ StandardCard.displayName = "StandardCard";
 // Virtualized grid to handle large numbers of standards efficiently
 const VirtualizedStandardGrid = memo(({ items, renderItem }) => {
   const [itemsPerRow, setItemsPerRow] = useState(() =>
-    window.innerWidth > 960 ? 4 : window.innerWidth > 600 ? 2 : 1
+    window.innerWidth > 960 ? 4 : window.innerWidth > 600 ? 2 : 1,
   );
 
   // Handle window resize for responsive grid
@@ -329,7 +369,7 @@ const VirtualizedStandardGrid = memo(({ items, renderItem }) => {
       overscan={5}
       defaultItemHeight={320} // Provide estimated row height for better virtualization
       itemContent={(index) => (
-        <Box sx={{ pt: index === 0 ? 0 : 2, pb: index === rows.length - 1 ? 3 : 0 }}>
+        <Box sx={{ pt: index === 0 ? 1.2 : 2, pb: index === rows.length - 1 ? 3 : 0 }}>
           <Grid
             container
             spacing={2}
@@ -381,10 +421,16 @@ const CompactStandardList = memo(
                 "&:hover": {
                   bgcolor: "action.hover",
                 },
-                ...(isNewStandard(standard.addedDate) && {
-                  borderColor: "success.main",
+                ...(standard.deprecated && {
+                  borderColor: "error.main",
                   borderWidth: "2px",
+                  opacity: 0.7,
                 }),
+                ...(isNewStandard(standard.addedDate) &&
+                  !standard.deprecated && {
+                    borderColor: "success.main",
+                    borderWidth: "2px",
+                  }),
               }}
             >
               <ListItemText
@@ -393,6 +439,14 @@ const CompactStandardList = memo(
                     <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
                       {standard.label}
                     </Typography>
+                    {standard.deprecated && (
+                      <Chip
+                        label="Deprecated"
+                        size="small"
+                        color="error"
+                        sx={{ fontSize: "0.7rem", height: 20, fontWeight: "bold" }}
+                      />
+                    )}
                     {isNewStandard(standard.addedDate) && (
                       <Chip
                         label="New"
@@ -409,8 +463,8 @@ const CompactStandardList = memo(
                         standard.impact === "High Impact"
                           ? "error"
                           : standard.impact === "Medium Impact"
-                          ? "warning"
-                          : "info"
+                            ? "warning"
+                            : "info"
                       }
                     />
                   </Box>
@@ -443,16 +497,15 @@ const CompactStandardList = memo(
                             p: ({ children }) => (
                               <Typography
                                 variant="body2"
-                                color="text.secondary"
                                 sx={{
+                                  color: "text.secondary",
                                   display: "-webkit-box",
                                   WebkitLineClamp: 2,
                                   WebkitBoxOrient: "vertical",
                                   overflow: "hidden",
                                   textOverflow: "ellipsis",
-                                  mb: 0,
-                                }}
-                              >
+                                  mb: 0
+                                }}>
                                 {children}
                               </Typography>
                             ),
@@ -481,7 +534,9 @@ const CompactStandardList = memo(
                             ))}
                           {standard.tag.filter((tag) => !tag.toLowerCase().includes("impact"))
                             .length > 3 && (
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography variant="caption" sx={{
+                              color: "text.secondary"
+                            }}>
                               +
                               {standard.tag.filter((tag) => !tag.toLowerCase().includes("impact"))
                                 .length - 3}{" "}
@@ -491,12 +546,16 @@ const CompactStandardList = memo(
                         </Box>
                       )}
                       {standard.recommendedBy?.length > 0 && (
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>
                           • Recommended by: {standard.recommendedBy.join(", ")}
                         </Typography>
                       )}
                       {standard.addedDate && (
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" sx={{
+                          color: "text.secondary"
+                        }}>
                           • Added: {standard.addedDate}
                         </Typography>
                       )}
@@ -505,14 +564,37 @@ const CompactStandardList = memo(
                 }
               />
               <ListItemSecondaryAction>
-                {standard.multiple ? (
+                {standard.deprecated ? (
+                  isSelected ? (
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={isSelected}
+                          onChange={handleToggle}
+                          color="primary"
+                          size="small"
+                        />
+                      }
+                      label="Remove"
+                      sx={{ mr: 1 }}
+                    />
+                  ) : (
+                    <Typography
+                      variant="caption"
+                      color="error"
+                      sx={{ maxWidth: 200, textAlign: "right", mr: 1 }}
+                    >
+                      Deprecated - Cannot be added
+                    </Typography>
+                  )
+                ) : standard.multiple ? (
                   <IconButton
                     color="primary"
                     disabled={isButtonDisabled}
                     onClick={() => handleAddClick(standard.name)}
                     sx={{ mr: 1 }}
                   >
-                    <Add />
+                    <CippIcons.Add />
                   </IconButton>
                 ) : (
                   <FormControlLabel
@@ -534,7 +616,7 @@ const CompactStandardList = memo(
         })}
       </List>
     );
-  }
+  },
 );
 
 CompactStandardList.displayName = "CompactStandardList";
@@ -562,6 +644,7 @@ const CippStandardDialog = ({
   const [selectedRecommendedBy, setSelectedRecommendedBy] = useState([]);
   const [selectedTagFrameworks, setSelectedTagFrameworks] = useState([]);
   const [showOnlyNew, setShowOnlyNew] = useState(false); // Show only standards added in last 30 days
+  const [statusFilter, setStatusFilter] = useState("all"); // "all" | "enabled" | "disabled"
   const [filtersExpanded, setFiltersExpanded] = useState(false); // Control filter section collapse/expand
 
   // Auto-adjust sort order when sort type changes
@@ -703,7 +786,11 @@ const CippStandardDialog = ({
           standard.label.toLowerCase().includes(localSearchQuery.toLowerCase()) ||
           standard.helpText.toLowerCase().includes(localSearchQuery.toLowerCase()) ||
           (standard.tag &&
-            standard.tag.some((tag) => tag.toLowerCase().includes(localSearchQuery.toLowerCase())));
+            standard.tag.some((tag) => tag.toLowerCase().includes(localSearchQuery.toLowerCase()))) ||
+          (standard.appliesToTest &&
+            standard.appliesToTest.some((testId) =>
+              testId.toLowerCase().includes(localSearchQuery.toLowerCase())
+            ));
 
         // Category filter
         const matchesCategory =
@@ -739,13 +826,21 @@ const CippStandardDialog = ({
         };
         const matchesNewFilter = !showOnlyNew || isNewStandard(standard.addedDate);
 
+        // Status filter: enabled = already in selectedStandards, disabled = not yet added
+        const isEnabled = !!selectedStandards[standard.name];
+        const matchesStatusFilter =
+          statusFilter === "all" ||
+          (statusFilter === "enabled" && isEnabled) ||
+          (statusFilter === "disabled" && !isEnabled);
+
         return (
           matchesSearch &&
           matchesCategory &&
           matchesImpact &&
           matchesRecommendedBy &&
           matchesTagFramework &&
-          matchesNewFilter
+          matchesNewFilter &&
+          matchesStatusFilter
         );
       });
     },
@@ -756,7 +851,9 @@ const CippStandardDialog = ({
       selectedRecommendedBy,
       selectedTagFrameworks,
       showOnlyNew,
-    ]
+      statusFilter,
+      selectedStandards,
+    ],
   );
 
   // Enhanced sort function
@@ -804,7 +901,7 @@ const CippStandardDialog = ({
         return 0;
       });
     },
-    [sortBy, sortOrder]
+    [sortBy, sortOrder],
   );
 
   // Optimize handleAddClick to be more performant
@@ -819,7 +916,7 @@ const CippStandardDialog = ({
         }, 100);
       });
     },
-    [handleAddMultipleStandard]
+    [handleAddMultipleStandard],
   );
 
   // Optimize search debounce with a higher timeout for better performance
@@ -827,7 +924,7 @@ const CippStandardDialog = ({
     debounce((query) => {
       setSearchQuery(query.trim());
     }, 350), // Increased debounce time for better performance
-    [setSearchQuery]
+    [setSearchQuery],
   );
 
   // Only process visible categories on demand to improve performance
@@ -840,7 +937,7 @@ const CippStandardDialog = ({
       setLocalSearchQuery(value);
       handleSearchQueryChange(value);
     },
-    [handleSearchQueryChange]
+    [handleSearchQueryChange],
   );
 
   // Clear all filters
@@ -851,6 +948,7 @@ const CippStandardDialog = ({
     setSelectedRecommendedBy([]);
     setSelectedTagFrameworks([]);
     setShowOnlyNew(false);
+    setStatusFilter("all");
     setSortBy("addedDate");
     setSortOrder("desc");
     setViewMode("card"); // Reset to card view
@@ -865,6 +963,7 @@ const CippStandardDialog = ({
     setSelectedRecommendedBy([]);
     setSelectedTagFrameworks([]);
     setShowOnlyNew(false);
+    setStatusFilter("all");
     setViewMode("card"); // Reset to card view
     handleSearchQueryChange(""); // Clear parent search state
     handleCloseDialog();
@@ -895,7 +994,7 @@ const CippStandardDialog = ({
           (standard) => {
             const item = allItems.find((item) => item.standard.name === standard.name);
             return item;
-          }
+          },
         );
 
         setProcessedItems(sortedAllItems);
@@ -931,7 +1030,7 @@ const CippStandardDialog = ({
         isButtonDisabled={isButtonDisabled}
       />
     ),
-    [selectedStandards, handleToggleSingleStandard, handleAddClick, isButtonDisabled]
+    [selectedStandards, handleToggleSingleStandard, handleAddClick, isButtonDisabled],
   );
 
   // Count active filters
@@ -940,7 +1039,8 @@ const CippStandardDialog = ({
     selectedImpacts.length +
     selectedRecommendedBy.length +
     selectedTagFrameworks.length +
-    (showOnlyNew ? 1 : 0);
+    (showOnlyNew ? 1 : 0) +
+    (statusFilter !== "all" ? 1 : 0);
 
   // Don't render dialog contents until it's actually open (improves performance)
   return (
@@ -949,24 +1049,24 @@ const CippStandardDialog = ({
       onClose={handleClose}
       maxWidth="xxl"
       fullWidth
+      fullScreen
       keepMounted={false}
-      TransitionProps={{
-        onExited: () => {
-          // Clear processed items on dialog close to free up memory
-          setProcessedItems([]);
+      slotProps={{
+        transition: {
+          onExited: () => {
+            // Clear processed items on dialog close to free up memory
+            setProcessedItems([]);
+          },
         },
-      }}
-      PaperProps={{
-        sx: {
-          minWidth: "720px",
-          maxHeight: "90vh",
-          height: "90vh",
-          display: "flex",
-          flexDirection: "column",
-        },
-      }}
-    >
-      <DialogTitle>Select a Standard to Add</DialogTitle>
+
+        paper: {
+          sx: {
+            display: "flex",
+            flexDirection: "column",
+          },
+        }
+      }}>
+      <DialogTitle sx={{ p: 2 }}>Select a Standard to Add</DialogTitle>
       <DialogContent
         sx={{
           backgroundColor: "background.default",
@@ -1013,12 +1113,17 @@ const CippStandardDialog = ({
               }}
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <FilterList sx={{ color: "text.secondary", fontSize: "1.1rem" }} />
+                <CippIcons.FilterList sx={{ color: "text.secondary", fontSize: "1.1rem" }} />
                 <Typography variant="body2" sx={{ color: "text.primary", fontWeight: "medium" }}>
                   View, Sort & Filter Options
                 </Typography>
                 {!filtersExpanded && (
-                  <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      ml: 1
+                    }}>
                     ({viewMode === "card" ? "Card" : "List"} •{" "}
                     {sortBy === "addedDate" ? "Date" : "Name"} {sortOrder === "desc" ? "↓" : "↑"}
                     {activeFiltersCount > 0
@@ -1028,7 +1133,7 @@ const CippStandardDialog = ({
                   </Typography>
                 )}
               </Box>
-              {filtersExpanded ? <ExpandLess /> : <ExpandMore />}
+              {filtersExpanded ? <CippIcons.ExpandLess /> : <CippIcons.ExpandMore />}
             </Box>
 
             {/* Single line controls when expanded */}
@@ -1058,11 +1163,11 @@ const CippStandardDialog = ({
                   }}
                 >
                   <ToggleButton value="card" aria-label="card view">
-                    <ViewModule sx={{ mr: 1 }} />
+                    <CippIcons.ViewModule sx={{ mr: 1 }} />
                     Cards
                   </ToggleButton>
                   <ToggleButton value="list" aria-label="list view">
-                    <ViewList sx={{ mr: 1 }} />
+                    <CippIcons.ViewList sx={{ mr: 1 }} />
                     List
                   </ToggleButton>
                 </ToggleButtonGroup>
@@ -1187,11 +1292,26 @@ const CippStandardDialog = ({
                   sx={{ ml: 1 }}
                 />
 
+                {/* Status Filter */}
+                <ToggleButtonGroup
+                  value={statusFilter}
+                  exclusive
+                  onChange={(e, newValue) => {
+                    if (newValue !== null) setStatusFilter(newValue);
+                  }}
+                  size="small"
+                  sx={{ height: 45 }}
+                >
+                  <ToggleButton value="all">All</ToggleButton>
+                  <ToggleButton value="enabled">Enabled</ToggleButton>
+                  <ToggleButton value="disabled">Disabled</ToggleButton>
+                </ToggleButtonGroup>
+
                 {/* Clear Button */}
                 {activeFiltersCount > 0 && (
                   <Button
                     variant="outlined"
-                    startIcon={<Clear />}
+                    startIcon={<CippIcons.Clear />}
                     onClick={clearAllFilters}
                     sx={{ ml: "auto", height: 45 }}
                   >
@@ -1205,7 +1325,9 @@ const CippStandardDialog = ({
           {/* Active Filter Chips */}
           {activeFiltersCount > 0 && (
             <Box sx={{ mb: 2 }}>
-              <Stack direction="row" spacing={1} flexWrap="wrap">
+              <Stack useFlexGap direction="row" spacing={1} sx={{
+                flexWrap: "wrap"
+              }}>
                 {selectedCategories.map((category) => (
                   <Chip
                     key={category}
@@ -1258,6 +1380,15 @@ const CippStandardDialog = ({
                     size="small"
                     onDelete={() => setShowOnlyNew(false)}
                     color="info"
+                    variant="outlined"
+                  />
+                )}
+                {statusFilter !== "all" && (
+                  <Chip
+                    label={statusFilter === "enabled" ? "Enabled Only" : "Disabled Only"}
+                    size="small"
+                    onDelete={() => setStatusFilter("all")}
+                    color="default"
                     variant="outlined"
                   />
                 )}

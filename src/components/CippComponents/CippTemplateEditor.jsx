@@ -2,11 +2,12 @@ import React, { useEffect, useState } from "react";
 import { Box, Typography, Divider } from "@mui/material";
 import { Grid } from "@mui/system";
 import { useForm } from "react-hook-form";
-import CippFormPage from "/src/components/CippFormPages/CippFormPage";
-import CippFormComponent from "/src/components/CippComponents/CippFormComponent";
-import CippFormSkeleton from "/src/components/CippFormPages/CippFormSkeleton";
-import { ApiGetCall } from "/src/api/ApiCall";
-import { getCippTranslation } from "/src/utils/get-cipp-translation";
+import CippFormPage from "../CippFormPages/CippFormPage";
+import CippFormComponent from "./CippFormComponent";
+import CippFormSkeleton from "../CippFormPages/CippFormSkeleton";
+import { ApiGetCall } from "../../api/ApiCall";
+import { getCippTranslation } from "../../utils/get-cipp-translation";
+import { matchPattern } from "../../utils/permission-rules";
 
 const CippTemplateEditor = ({
   templateId,
@@ -54,12 +55,8 @@ const CippTemplateEditor = ({
   const isFieldBlacklisted = (fieldName) => {
     return blacklistedFields.some(pattern => {
       if (pattern.includes('*')) {
-        // Convert wildcard pattern to regex
-        const regexPattern = pattern
-          .replace(/\*/g, '.*')
-          .replace(/\./g, '\\.');
-        const regex = new RegExp(`^${regexPattern}$`, 'i');
-        return regex.test(fieldName);
+        // matchPattern escapes every regex metacharacter and treats * as the only wildcard
+        return matchPattern(pattern, fieldName);
       }
       return pattern === fieldName;
     });
@@ -171,7 +168,9 @@ const CippTemplateEditor = ({
                 ))
             ) : (
               <Grid size={{ xs: 12 }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                  color: "text.secondary"
+                }}>
                   No {getCippTranslation(key)} data available
                 </Typography>
               </Grid>

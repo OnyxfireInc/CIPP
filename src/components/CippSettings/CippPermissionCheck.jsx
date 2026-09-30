@@ -9,15 +9,14 @@ import {
   SvgIcon,
   Typography,
 } from "@mui/material";
-import CippButtonCard from "/src/components/CippCards/CippButtonCard";
-import { ApiGetCall } from "/src/api/ApiCall";
+import { CippIcons } from "../../utils/icon-registry";
+import CippButtonCard from "../CippCards/CippButtonCard";
+import { ApiGetCall } from "../../api/ApiCall";
 import { useEffect, useState } from "react";
 import { CippPermissionResults } from "./CippPermissionResults";
 import { CippGDAPResults } from "./CippGDAPResults";
-import { Close, Sync } from "@mui/icons-material";
 import { CippTenantResults } from "./CippTenantResults";
 import { CippTimeAgo } from "../CippComponents/CippTimeAgo";
-import { Description } from "@mui/icons-material";
 
 const CippPermissionCheck = (props) => {
   const { type, importReport = false, variant } = props;
@@ -57,18 +56,19 @@ const CippPermissionCheck = (props) => {
         <Stack
           direction="row"
           spacing={3}
-          display="flex"
-          alignItems="center"
-          justifyContent={"space-between"}
-          width={"100%"}
-        >
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            width: "100%"
+          }}>
           <Stack direction="row" spacing={1}>
             <Button
               variant="contained"
               size="small"
               startIcon={
                 <SvgIcon fontSize="small">
-                  <Sync />
+                  <CippIcons.Sync />
                 </SvgIcon>
               }
               onClick={handlePermissionCheck}
@@ -87,7 +87,7 @@ const CippPermissionCheck = (props) => {
                 disabled={executeCheck.isPending || executeCheck.isFetching}
               >
                 <SvgIcon fontSize="small" style={{ marginRight: 4 }}>
-                  <Description />
+                  <CippIcons.Description />
                 </SvgIcon>
                 Details
               </Button>
@@ -112,6 +112,17 @@ const CippPermissionCheck = (props) => {
     );
   };
 
+  const responseData = executeCheck?.error?.response?.data;
+  const responseText =
+    typeof responseData === "string" ? responseData : responseData ? JSON.stringify(responseData) : "";
+  const shouldShowApiResponse = responseText.includes(
+    "Access to this CIPP API endpoint is not allowed",
+  );
+  const checkErrorMessage =
+    shouldShowApiResponse
+      ? responseText
+      : `Failed to load ${type} check. Please try refreshing the page.`;
+
   return (
     <>
       <CippButtonCard
@@ -119,10 +130,11 @@ const CippPermissionCheck = (props) => {
         title={
           <Stack
             direction="row"
-            alignContent="center"
-            justifyContent={"space-between"}
-            sx={{ mb: 0 }}
-          >
+            sx={{
+              alignContent: "center",
+              justifyContent: "space-between",
+              mb: 0
+            }}>
             <Box>{type} Check</Box>
             <Stack direction="row" spacing={2}>
               {importReport?.[type] && <Chip size="small" label="Imported" variant="outlined" />}
@@ -139,6 +151,11 @@ const CippPermissionCheck = (props) => {
         }}
         CardButton={<CheckButton />}
       >
+        {executeCheck.isError && !importReport && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {checkErrorMessage}
+          </Alert>
+        )}
         {(executeCheck.isSuccess || executeCheck.isLoading) && (
           <>
             {executeCheck.data?.Metadata?.AlertMessage && (
@@ -153,7 +170,7 @@ const CippPermissionCheck = (props) => {
                       size="small"
                       onClick={() => setShowAlertMessage(false)}
                     >
-                      <Close fontSize="inherit" />
+                      <CippIcons.Close fontSize="inherit" />
                     </IconButton>
                   }
                 >

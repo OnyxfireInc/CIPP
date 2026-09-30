@@ -1,8 +1,8 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { CippIcons } from "../../utils/icon-registry";
 import { Button, Divider } from "@mui/material";
 import { Grid } from "@mui/system";
 import { useForm, useFormState, useWatch } from "react-hook-form";
-import { PlaylistAdd } from "@mui/icons-material";
 import { CippOffCanvas } from "./CippOffCanvas";
 import CippFormComponent from "./CippFormComponent";
 import { CippFormTenantSelector } from "./CippFormTenantSelector";
@@ -67,7 +67,7 @@ export const CippAddTenantAllowBlockListDrawer = ({
       formControl.setValue(
         "listMethod",
         { label: "Block", value: "Block" },
-        { shouldValidate: true }
+        { shouldValidate: true },
       );
     }
 
@@ -85,16 +85,6 @@ export const CippAddTenantAllowBlockListDrawer = ({
     listMethod,
     formControl,
   ]);
-
-  useEffect(() => {
-    if (addEntry.isSuccess) {
-      const currentTenants = formControl.getValues("tenantID");
-      formControl.reset({
-        ...defaultValues,
-        tenantID: currentTenants,
-      });
-    }
-  }, [addEntry.isSuccess, formControl]);
 
   const validateEntries = (value) => {
     if (!value) return true;
@@ -133,6 +123,10 @@ export const CippAddTenantAllowBlockListDrawer = ({
           return "URL entries must be 250 characters or less";
         }
 
+        if (/^https?:\/\//i.test(entry)) {
+          return "Invalid URL format. Do not include http:// or https://";
+        }
+
         if (entry.includes("*") || entry.includes("~")) {
           const wildcardUrlResult = getCippValidator(entry, "wildcardUrl");
           const wildcardDomainResult = getCippValidator(entry, "wildcardDomain");
@@ -153,7 +147,7 @@ export const CippAddTenantAllowBlockListDrawer = ({
         const ipv6Result = getCippValidator(entry, "ipv6");
         const ipv6CidrResult = getCippValidator(entry, "ipv6cidr");
         const hostnameResult = getCippValidator(entry, "hostname");
-        const urlResult = getCippValidator(entry, "url");
+        const hostnamePathResult = getCippValidator(entry, "hostnamePath");
 
         if (
           ipv4Result !== true &&
@@ -161,9 +155,9 @@ export const CippAddTenantAllowBlockListDrawer = ({
           ipv6Result !== true &&
           ipv6CidrResult !== true &&
           hostnameResult !== true &&
-          urlResult !== true
+          hostnamePathResult !== true
         ) {
-          return "Invalid URL format. Enter hostnames, IPv4, or IPv6 addresses";
+          return "Invalid URL format. Enter hostnames, hostname paths, IPv4, or IPv6 addresses";
         }
       }
       return true;
@@ -216,9 +210,9 @@ export const CippAddTenantAllowBlockListDrawer = ({
   return (
     <>
       <PermissionButton
-        requiredPermissions={requiredPermissions}
+        {...(PermissionButton !== Button ? { requiredPermissions } : {})}
         onClick={() => setDrawerVisible(true)}
-        startIcon={<PlaylistAdd />}
+        startIcon={<CippIcons.PlaylistAdd />}
       >
         {buttonText}
       </PermissionButton>
@@ -273,12 +267,12 @@ export const CippAddTenantAllowBlockListDrawer = ({
                 listType?.value === "FileHash"
                   ? "Enter SHA256 hash values separated by commas or semicolons (e.g., 768a813668695ef2483b2bde7cf5d1b2db0423a0d3e63e498f3ab6f2eb13ea3e)"
                   : listType?.value === "Url"
-                  ? "Enter URLs, IPv4, or IPv6 addresses with optional wildcards separated by commas or semicolons"
-                  : listType?.value === "Sender"
-                  ? "Enter domains or email addresses separated by commas or semicolons (e.g., contoso.com,user@example.com)"
-                  : listType?.value === "IP"
-                  ? "Enter IPv6 addresses only in colon-hexadecimal format or CIDR notation"
-                  : ""
+                    ? "Enter hostnames or hostname paths (e.g., test.com/test), IPv4, or IPv6 addresses with optional wildcards. Do not include http:// or https://"
+                    : listType?.value === "Sender"
+                      ? "Enter domains or email addresses separated by commas or semicolons (e.g., contoso.com,user@example.com)"
+                      : listType?.value === "IP"
+                        ? "Enter IPv6 addresses only in colon-hexadecimal format or CIDR notation"
+                        : ""
               }
             />
           </Grid>

@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { Grid } from "@mui/system";
 import { useForm, useWatch } from "react-hook-form";
-import { Layout as DashboardLayout } from "/src/layouts/index.js";
-import CippFormPage from "/src/components/CippFormPages/CippFormPage";
-import CippFormComponent from "/src/components/CippComponents/CippFormComponent";
+import { Layout as DashboardLayout } from "../../../../layouts/index";
+import CippFormPage from "../../../../components/CippFormPages/CippFormPage";
+import CippFormComponent from "../../../../components/CippComponents/CippFormComponent";
 import { useSettings } from "../../../../hooks/use-settings";
 import { getCippTranslation } from "../../../../utils/get-cipp-translation";
 import { Alert, Divider, Typography } from "@mui/material";
@@ -126,6 +126,7 @@ const MailboxRestoreForm = () => {
               valueField: "UPN",
               addedField: { displayName: "displayName", ExchangeGuid: "ExchangeGuid" },
               url: "/api/ListMailboxes",
+              data: { UseReportDB: true },
             }}
             validators={{ validate: (value) => (value ? true : "Please select a target mailbox.") }}
           />
@@ -146,7 +147,7 @@ const MailboxRestoreForm = () => {
         <Grid size={12}>
           <Typography variant="h6">Optional Settings</Typography>
         </Grid>
-        <Grid size={{ xs: 6, md: 2 }}>
+        <Grid size={{ xs: 12, md: 2 }}>
           <CippFormComponent
             type="number"
             label="Bad Item Limit"
@@ -154,7 +155,7 @@ const MailboxRestoreForm = () => {
             formControl={formControl}
           />
         </Grid>
-        <Grid size={{ xs: 6, md: 2 }}>
+        <Grid size={{ xs: 12, md: 2 }}>
           <CippFormComponent
             type="number"
             label="Large Item Limit"
@@ -162,7 +163,7 @@ const MailboxRestoreForm = () => {
             formControl={formControl}
           />
         </Grid>
-        <Grid size={{ xs: 6, md: 2 }}>
+        <Grid size={{ xs: 12, md: 2 }}>
           <CippFormComponent
             type="number"
             label="Completed Request Age Limit"

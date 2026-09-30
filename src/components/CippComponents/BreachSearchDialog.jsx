@@ -1,8 +1,8 @@
 import { useState } from "react";
+import { CippIcons } from "../../utils/icon-registry"
 import { Dialog, DialogContent, DialogTitle, Button, DialogActions } from "@mui/material";
-import { Search } from "@mui/icons-material";
 import { useForm, FormProvider } from "react-hook-form";
-import { ApiPostCall } from "/src/api/ApiCall";
+import { ApiPostCall } from "../../api/ApiCall";
 import { CippApiResults } from "./CippApiResults";
 import { useSettings } from "../../hooks/use-settings";
 
@@ -55,7 +55,7 @@ export const BreachSearchDialog = ({ createDialog }) => {
               type="submit"
               variant="contained"
               disabled={isRunning || breachSearchResults.isLoading}
-              startIcon={<Search />}
+              startIcon={<CippIcons.MagnifyingGlassIcon />}
             >
               Run Breach Search
             </Button>

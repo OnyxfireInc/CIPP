@@ -1,7 +1,7 @@
 import { Button, ButtonGroup, SvgIcon, Typography } from "@mui/material";
-import CippButtonCard from "/src/components/CippCards/CippButtonCard";
-import { ApiGetCall, ApiPostCall } from "/src/api/ApiCall";
-import { Dns } from "@mui/icons-material";
+import { CippIcons } from "../../utils/icon-registry";
+import CippButtonCard from "../CippCards/CippButtonCard";
+import { ApiGetCall, ApiPostCall } from "../../api/ApiCall";
 
 const CippDnsSettings = () => {
   const dnsSetting = ApiGetCall({
@@ -23,7 +23,7 @@ const CippDnsSettings = () => {
   };
 
   const DnsButtons = () => {
-    const resolvers = ["Google", "Cloudflare", "Quad9"];
+    const resolvers = ["Google", "Cloudflare"];
     return resolvers.map((resolver, index) => (
       <Button
         key={resolver}
@@ -63,7 +63,7 @@ const CippDnsSettings = () => {
           >
             <Button disabled={true} color="primary">
               <SvgIcon fontSize="small">
-                <Dns />
+                <CippIcons.Dns />
               </SvgIcon>
             </Button>
             <DnsButtons />

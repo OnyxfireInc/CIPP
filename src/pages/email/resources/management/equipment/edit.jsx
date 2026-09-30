@@ -1,16 +1,16 @@
 import React, { useEffect } from "react";
-import { Divider, Typography } from "@mui/material";
+import { Alert, Divider, Typography } from "@mui/material";
 import { Grid } from "@mui/system";
 import { useForm } from "react-hook-form";
-import { Layout as DashboardLayout } from "/src/layouts/index.js";
-import CippFormPage from "/src/components/CippFormPages/CippFormPage";
-import CippFormComponent from "/src/components/CippComponents/CippFormComponent";
-import CippFormSkeleton from "/src/components/CippFormPages/CippFormSkeleton";
-import { useSettings } from "/src/hooks/use-settings";
+import { Layout as DashboardLayout } from "../../../../../layouts/index";
+import CippFormPage from "../../../../../components/CippFormPages/CippFormPage";
+import CippFormComponent from "../../../../../components/CippComponents/CippFormComponent";
+import CippFormSkeleton from "../../../../../components/CippFormPages/CippFormSkeleton";
+import { useSettings } from "../../../../../hooks/use-settings";
 import { useRouter } from "next/router";
-import { ApiGetCall } from "/src/api/ApiCall";
-import countryList from "/src/data/countryList.json";
-import timezoneList from "/src/data/timezoneList.json";
+import { ApiGetCall } from "../../../../../api/ApiCall";
+import countryList from "../../../../../data/countryList.json";
+import timezoneList from "../../../../../data/timezoneList.json";
 
 // Work days options
 const workDaysOptions = [
@@ -113,7 +113,9 @@ const EditEquipmentMailbox = () => {
     <CippFormPage
       formControl={formControl}
       queryKey={`Equipment-${equipmentId}`}
-      title="Edit Equipment Mailbox"
+      title="Equipment Mailbox"
+      formPageType="Edit"
+      hideSubmit={!equipmentId}
       backButtonTitle="Equipment Mailboxes Overview"
       postUrl="/api/EditEquipmentMailbox"
       customDataformatter={(values) => ({
@@ -152,6 +154,11 @@ const EditEquipmentMailbox = () => {
         workingHoursTimeZone: values.workingHoursTimeZone?.value || values.workingHoursTimeZone,
       })}
     >
+      {!equipmentId && (
+        <Alert severity="info">
+          No equipment mailbox selected. Open this page from the Equipment Mailboxes list.
+        </Alert>
+      )}
       {equipmentInfo.isLoading && (
         <CippFormSkeleton layout={[2, 3, 2, 2, 2, 1, 2, 2, 2, 3, 1, 1]} />
       )}
@@ -206,9 +213,7 @@ const EditEquipmentMailbox = () => {
                   message: "Maximum is 2,147,483,647 minutes",
                 },
               }}
-              InputProps={{
-                inputProps: { min: 0, max: 2147483647 },
-              }}
+              slotProps={{ htmlInput: { min: 0, max: 2147483647 } }}
               fullWidth
               helperText="Set to 0 for unlimited duration"
             />
@@ -224,9 +229,7 @@ const EditEquipmentMailbox = () => {
                 min: { value: 0, message: "Minimum is 0 days" },
                 max: { value: 1080, message: "Maximum is 1080 days (3 years)" },
               }}
-              InputProps={{
-                inputProps: { min: 0, max: 1080 },
-              }}
+              slotProps={{ htmlInput: { min: 0, max: 1080 } }}
               fullWidth
             />
           </Grid>

@@ -8,14 +8,14 @@ import {
   Button,
   Alert,
 } from "@mui/material";
-import CippFormSection from "/src/components/CippFormPages/CippFormSection";
+import { CippIcons } from "../../utils/icon-registry";
+import CippFormSection from "../CippFormPages/CippFormSection";
 import { useForm } from "react-hook-form";
-import { ApiGetCall } from "/src/api/ApiCall";
+import { ApiGetCall } from "../../api/ApiCall";
 import { useRouter } from "next/router";
-import extensions from "/src/data/Extensions.json";
+import extensions from "../../data/Extensions.json";
 import React, { useEffect, useState } from "react";
-import CippFormComponent from "/src/components/CippComponents/CippFormComponent";
-import { Sync } from "@mui/icons-material";
+import CippFormComponent from "../CippComponents/CippFormComponent";
 import { Stack, Grid } from "@mui/system";
 
 const CippIntegrationFieldMapping = () => {
@@ -42,7 +42,7 @@ const CippIntegrationFieldMapping = () => {
       var missingMappings = [];
       fieldMapping?.data?.Mappings?.forEach((mapping) => {
         const exists = fieldMapping?.data?.IntegrationFields?.some(
-          (integrationField) => String(integrationField.value) === mapping.IntegrationId
+          (integrationField) => String(integrationField?.value) === mapping.IntegrationId
         );
         if (exists) {
           newMappings[mapping.RowKey] = {
@@ -88,7 +88,9 @@ const CippIntegrationFieldMapping = () => {
           <>
             {fieldMapping?.data?.CIPPFieldHeaders?.map((header, headerIndex) => (
               <React.Fragment key={`header-${headerIndex}`}>
-                <Stack direction="row" justifyContent="space-between">
+                <Stack direction="row" sx={{
+                  justifyContent: "space-between"
+                }}>
                   <Box>
                     <Typography variant="h4">{header.Title}</Typography>
                     <Typography variant="body2" sx={{ mb: 2 }}>
@@ -104,7 +106,7 @@ const CippIntegrationFieldMapping = () => {
                           }}
                           variant="contained"
                         >
-                          <Sync />
+                          <CippIcons.Sync />
                         </Button>
                       </Tooltip>
                     </Box>
@@ -122,7 +124,7 @@ const CippIntegrationFieldMapping = () => {
                         label={field.FieldLabel}
                         options={fieldMapping?.data?.IntegrationFields?.filter(
                           (integrationField) =>
-                            (integrationField?.type === field.Type &&
+                            ([].concat(field.Type).includes(integrationField?.type) &&
                               integrationField?.FieldType === field.FieldType) ||
                             integrationField?.type === "unset"
                         )?.map((integrationField) => {

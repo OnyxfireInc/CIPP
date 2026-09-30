@@ -1,9 +1,9 @@
 import { Button, SvgIcon, Typography } from "@mui/material";
-import CippButtonCard from "/src/components/CippCards/CippButtonCard";
-import { ApiPostCall } from "/src/api/ApiCall";
+import { CippIcons } from "../../utils/icon-registry";
+import CippButtonCard from "../CippCards/CippButtonCard";
+import { ApiPostCall } from "../../api/ApiCall";
 import { CippApiDialog } from "../CippComponents/CippApiDialog";
-import { useDialog } from "/src/hooks/use-dialog";
-import { TrashIcon } from "@heroicons/react/24/outline";
+import { useDialog } from "../../hooks/use-dialog";
 
 const CippCacheSettings = () => {
   const createDialog = useDialog();
@@ -35,7 +35,7 @@ const CippCacheSettings = () => {
           disabled={resolverChange.isPending}
         >
           <SvgIcon fontSize="small" style={{ marginRight: 4 }}>
-            <TrashIcon />
+            <CippIcons.TrashIcon />
           </SvgIcon>
           Clear Cache
         </Button>

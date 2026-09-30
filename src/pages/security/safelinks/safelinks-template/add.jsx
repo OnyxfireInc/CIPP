@@ -2,10 +2,10 @@ import { useEffect } from "react";
 import { Divider } from "@mui/material";
 import { Grid } from "@mui/system";
 import { useForm, useWatch } from "react-hook-form";
-import { Layout as DashboardLayout } from "/src/layouts/index.js";
-import CippFormPage from "/src/components/CippFormPages/CippFormPage";
-import CippFormComponent from "/src/components/CippComponents/CippFormComponent";
-import { CippFormTenantSelector } from "/src/components/CippComponents/CippFormTenantSelector";
+import { Layout as DashboardLayout } from "../../../../layouts/index";
+import CippFormPage from "../../../../components/CippFormPages/CippFormPage";
+import CippFormComponent from "../../../../components/CippComponents/CippFormComponent";
+import { CippFormTenantSelector } from "../../../../components/CippComponents/CippFormTenantSelector";
 
 const DeploySafeLinksPolicyTemplate = () => {
   const formControl = useForm({
@@ -60,5 +60,5 @@ const DeploySafeLinksPolicyTemplate = () => {
   );
 };
 
-DeploySafeLinksPolicyTemplate.getLayout = (page) => <DashboardLayout>{page}</DashboardLayout>;
+DeploySafeLinksPolicyTemplate.getLayout = (page) => <DashboardLayout allTenantsSupport={false}>{page}</DashboardLayout>;
 export default DeploySafeLinksPolicyTemplate;

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { ApiGetCall } from "/src/api/ApiCall";
-import { hasAccess, hasPermission, hasRole } from "/src/utils/permissions";
+import { ApiGetCall } from "../api/ApiCall";
+import { hasAccess, hasPermission, hasRole } from "../utils/permissions";
 
 /**
  * Hook for checking user permissions and roles
@@ -16,6 +16,11 @@ export const usePermissions = () => {
   const userPermissions = currentRole.data?.permissions || [];
   const isLoading = currentRole.isLoading;
   const isAuthenticated = currentRole.isSuccess && userRoles.length > 0;
+  // CyberDrain-hosted instance: some infrastructure (custom domains on the shared plan) is
+  // managed in the management portal rather than from CIPP itself.
+  const isHosted = Boolean(currentRole.data?.hosted);
+  // CIPP-NG (container web app on an App Service plan) versus a legacy function app + static web app.
+  const isNg = Boolean(currentRole.data?.ng);
 
   /**
    * Check if user has specific permissions
@@ -71,6 +76,8 @@ export const usePermissions = () => {
     userRoles,
     isLoading,
     isAuthenticated,
+    isHosted,
+    isNg,
     checkPermissions,
     checkRoles,
     checkAccess,
