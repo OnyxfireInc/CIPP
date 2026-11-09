@@ -26,6 +26,8 @@ import { CippScheduledTaskActions } from "./CippScheduledTaskActions";
 import { CippApiLogsDrawer } from "./CippApiLogsDrawer";
 import { CippJobProgress, formatJobProgressText, OFFBOARDING_PROGRESS_ACTIONS } from "./CippJobProgress";
 import { CippCopyToClipBoard } from "./CippCopyToClipboard";
+import { mergeRow, useCraftJobEvents } from "../../hooks/use-craft-events";
+import { useQueryClient } from "@tanstack/react-query";
 
 const ScheduledTaskDetails = ({ data, showActions = true, showTitle = true }) => {
   const [taskDetails, setTaskDetails] = useState(null);
@@ -36,7 +38,7 @@ const ScheduledTaskDetails = ({ data, showActions = true, showTitle = true }) =>
     setExpanded(newExpanded ? panel : false);
   };
 
-  // Keep the page live while the task is still in flight (Planned, Running or Processing).
+  // Refreshed by the card's button: a recurring task stays Planned between runs.
   const inFlight = ["Planned", "Running", "Processing"].includes(taskDetails?.Task?.TaskState);
   const taskDetailResults = ApiGetCall({
     url: `/api/ListScheduledItemDetails`,
@@ -44,19 +46,25 @@ const ScheduledTaskDetails = ({ data, showActions = true, showTitle = true }) =>
       RowKey: data.RowKey,
     },
     queryKey: `ListScheduledItemDetails-${data.RowKey}`,
-    refetchInterval: inFlight ? 5000 : false,
   });
 
   // Live step progress for jobs that report it (e.g. user offboarding). A wizard run shares one
   // job across its users, so only this task's user is shown.
   const deploymentId = taskDetails?.Task?.Parameters?.DeploymentId;
   const username = taskDetails?.Task?.Parameters?.Username;
+  const queryClient = useQueryClient();
+  useCraftJobEvents(inFlight ? deploymentId : null, (frame) => {
+    if (!frame.data) {
+      progressResults.refetch();
+      return;
+    }
+    queryClient.setQueryData([`ListAsyncDeployment-${deploymentId}`], (old) => mergeRow(old, frame.data));
+  });
   const progressResults = ApiGetCall({
     url: "/api/ListAsyncDeployment",
     data: { DeploymentId: deploymentId },
     queryKey: `ListAsyncDeployment-${deploymentId}`,
     waiting: !!deploymentId,
-    refetchInterval: inFlight ? 5000 : false,
     staleTime: 0,
   });
   const progressRows = (Array.isArray(progressResults.data) ? progressResults.data : []).filter(
@@ -88,7 +96,7 @@ const ScheduledTaskDetails = ({ data, showActions = true, showTitle = true }) =>
     if (!searchQuery) return true;
 
     const searchLower = searchQuery.toLowerCase();
-    const tenantMatches = (result.TenantName || result.Tenant || "")
+    const tenantMatches = String(result.TenantName || result.Tenant?.label || result.Tenant || "")
       .toLowerCase()
       .includes(searchLower);
 
@@ -135,7 +143,13 @@ const ScheduledTaskDetails = ({ data, showActions = true, showTitle = true }) =>
         <CippPropertyListCard
           actionButton={
             <Tooltip title="Refresh">
-              <IconButton size="small" onClick={() => taskDetailResults.refetch()}>
+              <IconButton
+                size="small"
+                onClick={() => {
+                  taskDetailResults.refetch();
+                  if (deploymentId) progressResults.refetch();
+                }}
+              >
                 <CippIcons.Sync />
               </IconButton>
             </Tooltip>

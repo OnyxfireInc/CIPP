@@ -13,6 +13,7 @@ import { CippIcons } from '../../utils/icon-registry'
 import ReactTimeAgo from 'react-time-ago'
 import CippButtonCard from './CippButtonCard'
 import { CippJobProgress } from '../CippComponents/CippJobProgress'
+import { CippBecContainmentDrawer } from '../CippComponents/CippBecContainmentDrawer'
 
 const toDate = (value) => {
   if (!value) return null
@@ -28,17 +29,19 @@ const toDate = (value) => {
  *  - waiting:   a run is queued (no worker has picked it up) or running (live steps from the
  *               async-deployment job, the same progress rows the SharePoint deploy uses)
  *  - error:     the run failed; the failed phase is shown
- * The header carries only the title and the state chips; the button lives in the footer so a
- * long UPN never fights it for space.
+ * The header carries only the title and the state chips; the buttons live in the footer so a
+ * long UPN never fights them for space. Containment can run while the investigation does and is
+ * recorded on the case.
  */
 export const CippBecRunStatusCard = ({
   userPrincipalName,
+  userId,
+  tenantFilter,
   state,
   caseId,
   poll,
   onStart,
   startPending = false,
-  windowDays = 7,
 }) => {
   const progress = poll?.Progress
   const steps = Array.isArray(progress?.Steps) ? progress.Steps : []
@@ -92,6 +95,21 @@ export const CippBecRunStatusCard = ({
       {state === 'error' ? 'Run a new investigation' : 'Run investigation'}
     </Button>
   )
+  const cardButtons =
+    state === 'waiting' && caseId ? (
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        {startButton}
+        <CippBecContainmentDrawer
+          userPrincipalName={userPrincipalName}
+          userId={userId}
+          tenantFilter={tenantFilter}
+          caseId={caseId}
+          buttonText="Contain user"
+        />
+      </Stack>
+    ) : (
+      startButton
+    )
 
   return (
     <CippButtonCard
@@ -121,7 +139,7 @@ export const CippBecRunStatusCard = ({
           </Stack>
         </Stack>
       }
-      CardButton={startButton}
+      CardButton={cardButtons}
       isFetching={false}
     >
       {state === 'loading' && (
@@ -141,9 +159,9 @@ export const CippBecRunStatusCard = ({
             return to, report on and export evidence from.
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            The investigation reads the last {windowDays} days of audit records,
-            sign-ins, permissions, rules, consents, devices and trace headers
-            across 21 checks. It collects metadata only - never message content
+            The investigation reads the last 7 days (30 for tenants with Entra
+            ID P1 or P2) of audit records, sign-ins, permissions, rules,
+            consents, devices and trace headers across 21 checks. It collects metadata only - never message content
             - and usually takes a few minutes.
           </Typography>
         </Stack>

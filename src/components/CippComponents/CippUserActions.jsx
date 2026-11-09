@@ -6,6 +6,7 @@ import { usePermissions } from '../../hooks/use-permissions'
 import { Tooltip, Box, Divider, Typography, Alert, Skeleton, Link, IconButton } from '@mui/material'
 import CippFormComponent from './CippFormComponent'
 import { MfaVerifyForm } from './CippMfaVerifyForm'
+import { CippSharedMailboxLicenseAlert } from './CippSharedMailboxLicenseAlert'
 import { CippFormCondition } from './CippFormCondition'
 import { useWatch } from 'react-hook-form'
 import { ApiGetCall } from '../../api/ApiCall'
@@ -625,19 +626,9 @@ export const useCippUserActions = () => {
       condition: () => canWriteUser,
     },
     {
-      //tested
-      label: 'Research Compromised Account',
-      type: 'GET',
-      icon: <CippIcons.MagnifyingGlassIcon />,
-      link: '/identity/administration/bec/case?userId=[id]',
-      confirmText:
-        'Are you sure you want to research if [userPrincipalName] is a compromised account?',
-      multiPost: false,
-    },
-    {
       // Queues one BEC run per selected user (bulk-capable); results land on
       // the BEC Reports page
-      label: 'Run BEC investigation',
+      label: 'BEC Remediation',
       type: 'POST',
       url: '/api/ExecBECBulkCheck',
       icon: <CippIcons.MagnifyingGlassIcon />,
@@ -730,6 +721,7 @@ export const useCippUserActions = () => {
           ],
           validators: { required: 'Please select a mailbox type' },
         },
+        { name: 'sharedMailboxLicenseWarning', component: CippSharedMailboxLicenseAlert },
       ],
       confirmText: 'Pick the type of mailbox you want to convert [userPrincipalName] to:',
       multiPost: false,
@@ -952,9 +944,27 @@ export const useCippUserActions = () => {
           ],
           validators: { required: 'Please select a shortcut location' },
         },
+        {
+          type: 'textField',
+          name: 'shortcutName',
+          label: 'Shortcut name (optional)',
+          helperText: 'Leave blank to keep the library or site name.',
+          validators: {
+            validate: (value) => {
+              if (!value) return true
+              if (/["*:<>?/\\|]/.test(value)) return 'Cannot contain any of: " * : < > ? / \\ |'
+              if (value !== value.trim()) return 'Cannot start or end with a space'
+              if (value.endsWith('.')) return 'Cannot end with a period'
+              if (value.length > 255) return 'Cannot be longer than 255 characters'
+              return true
+            },
+          },
+        },
       ],
       confirmText: 'Select a SharePoint site and where to create the OneDrive shortcut:',
-      multiPost: false,
+      // One request for all selected users: the backend attempts every user and reports each
+      // failure in place, so a bulk rollout does not stop at the first user that already has it.
+      multiPost: true,
       allowResubmit: true,
       condition: () => canWriteUser,
     },

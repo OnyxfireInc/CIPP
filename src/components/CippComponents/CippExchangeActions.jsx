@@ -2,6 +2,16 @@
 import { useSettings } from "../../hooks/use-settings.js";
 import { useMemo } from "react";
 import { MfaVerifyForm } from "./CippMfaVerifyForm";
+import { CippSharedMailboxLicenseAlert } from "./CippSharedMailboxLicenseAlert";
+import CippMailboxCustomAttributeRows, {
+  canEditMailboxCustomAttributes,
+} from "./CippMailboxCustomAttributeRows";
+import timezoneList from "../../data/timezoneList.json";
+
+const timezoneOptions = timezoneList.map((tz) => ({
+  label: `${tz.standardTime} - ${tz.timezone}`,
+  value: tz.standardTime,
+}));
 
 export const CippExchangeActions = () => {
   const tenant = useSettings().currentTenant;
@@ -168,6 +178,7 @@ export const CippExchangeActions = () => {
           ],
           validators: { required: "Please select a mailbox type" },
         },
+        { name: "sharedMailboxLicenseWarning", component: CippSharedMailboxLicenseAlert },
       ],
       confirmText:
         "Pick the type of mailbox you want to convert [UPN] of mailbox type [recipientTypeDetails] to:",
@@ -178,7 +189,7 @@ export const CippExchangeActions = () => {
       type: "POST",
       icon: <CippIcons.Archive />,
       url: "/api/ExecEnableArchive",
-      data: { ID: "Id", username: "UPN" },
+      data: { ID: "ExchangeGuid", username: "UPN" },
       confirmText: "Are you sure you want to enable the online archive for [UPN]?",
       multiPost: false,
       condition: (row) => row.ArchiveGuid === "00000000-0000-0000-0000-000000000000",
@@ -232,7 +243,7 @@ export const CippExchangeActions = () => {
       type: "POST",
       icon: <CippIcons.PostAdd />,
       url: "/api/ExecEnableAutoExpandingArchive",
-      data: { ID: "Id", username: "UPN" },
+      data: { ID: "ExchangeGuid", username: "UPN" },
       confirmText:
         "Are you sure you want to enable auto-expanding archive for [UPN]? The archive must already be enabled.",
       multiPost: false,
@@ -307,7 +318,7 @@ export const CippExchangeActions = () => {
       label: "Set Litigation Hold",
       type: "POST",
       url: "/api/ExecSetLitigationHold",
-      data: { UPN: "UPN", Identity: "Id" },
+      data: { UPN: "UPN", Identity: "ExchangeGuid" },
       confirmText: "What do you want to set the Litigation Hold to?",
       icon: <CippIcons.Gavel />,
       condition: (row) => row.LicensedForLitigationHold === true,
@@ -329,7 +340,7 @@ export const CippExchangeActions = () => {
       label: "Set Retention Hold",
       type: "POST",
       url: "/api/ExecSetRetentionHold",
-      data: { UPN: "UPN", Identity: "Id" },
+      data: { UPN: "UPN", Identity: "ExchangeGuid" },
       confirmText: "What do you want to set Retention Hold to?",
       icon: <CippIcons.MailLock />,
       fields: [
@@ -344,7 +355,7 @@ export const CippExchangeActions = () => {
       label: "Set Mailbox Locale",
       type: "POST",
       url: "/api/ExecSetMailboxLocale",
-      data: { user: "UPN", ProhibitSendQuota: true },
+      data: { user: "UPN" },
       confirmText: "Enter a locale, e.g. en-US",
       icon: <CippIcons.Language />,
       fields: [
@@ -356,6 +367,70 @@ export const CippExchangeActions = () => {
           validators: { required: "Please enter a locale" },
         },
       ],
+    },
+    {
+      label: "Migrate Calendar Time Zone",
+      type: "POST",
+      url: "/api/ExecCalendarTimeZoneMigration",
+      data: { UPN: "UPN", Identity: "ExchangeGuid" },
+      confirmText:
+        "Move [UPN] to a new time zone? This sets the mailbox and working hours time zone, then moves the future meetings this mailbox organises to the new time zone at the same local time. Attendees receive a meeting update.",
+      icon: <CippIcons.Schedule />,
+      fields: [
+        {
+          type: "autoComplete",
+          name: "FromTimeZone",
+          label: "Current time zone",
+          multiple: false,
+          creatable: false,
+          options: timezoneOptions,
+          validators: { required: "Please select the current time zone" },
+        },
+        {
+          type: "autoComplete",
+          name: "ToTimeZone",
+          label: "New time zone",
+          multiple: false,
+          creatable: false,
+          options: timezoneOptions,
+          validators: { required: "Please select the new time zone" },
+        },
+      ],
+    },
+    {
+      label: "Set Custom Attributes",
+      type: "POST",
+      url: "/api/ExecSetMailboxCustomAttributes",
+      data: { userid: "UPN", Identity: "ExchangeGuid" },
+      confirmText:
+        "Set the selected custom attributes on [UPN]? Empty values clear that attribute; unlisted attributes are left unchanged.",
+      icon: <CippIcons.Edit />,
+      condition: (row) => canEditMailboxCustomAttributes(row),
+      fields: [
+        {
+          name: "attributeRows",
+          component: CippMailboxCustomAttributeRows,
+        },
+      ],
+      customDataformatter: (rows, action, formData) => {
+        const mailboxArray = (Array.isArray(rows) ? rows : [rows]).filter((mailbox) =>
+          canEditMailboxCustomAttributes(mailbox)
+        );
+        const attrs = {};
+        (formData.attributeRows || []).forEach((row) => {
+          const attrName = row?.attribute?.value ?? row?.attribute;
+          if (attrName) {
+            attrs[attrName] = row?.value ?? "";
+          }
+        });
+
+        return mailboxArray.map((mailbox) => ({
+          tenantFilter: mailbox.Tenant || mailbox.tenantFilter || tenant,
+          userid: mailbox.UPN || mailbox.UserPrincipalName,
+          Identity: mailbox.ExchangeGuid,
+          ...attrs,
+        }));
+      },
     },
     {
       label: "Set Max Send/Receive Size",

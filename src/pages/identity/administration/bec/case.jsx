@@ -6,6 +6,8 @@ import { CippAutoComplete } from '../../../../components/CippComponents/CippAuto
 import { Layout as DashboardLayout } from '../../../../layouts/index'
 import { useSettings } from '../../../../hooks/use-settings'
 import { ApiGetCall, ApiPostCall } from '../../../../api/ApiCall'
+import { useQueryClient } from '@tanstack/react-query'
+import { useCraftJobEvents } from '../../../../hooks/use-craft-events'
 import { CippHead } from '../../../../components/CippComponents/CippHead'
 import { CippBecRunStatusCard } from '../../../../components/CippCards/CippBecRunStatusCard'
 import { CippBecTriageHeader } from '../../../../components/CippCards/CippBecTriageHeader'
@@ -40,10 +42,15 @@ const Page = () => {
   }, [caseIdParam])
 
   const userRequest = ApiGetCall({
-    url: '/api/ListUsers',
-    data: { UserId: userId, tenantFilter: tenant },
-    queryKey: `ListUsers-${userId}`,
-    waiting: ready,
+    url: '/api/ListGraphRequest',
+    data: {
+      Endpoint: 'users',
+      $filter: `id eq '${userId}'`,
+      $select: 'id,displayName,userPrincipalName',
+      tenantFilter: tenant,
+    },
+    queryKey: `BECCaseUser-${tenant}-${userId}`,
+    waiting: ready && tenant !== 'AllTenants',
   })
 
   const runsCall = ApiGetCall({
@@ -63,12 +70,30 @@ const Page = () => {
   const activeCaseId =
     selectedCaseId ?? startedCaseId ?? latestRun?.CaseId ?? null
 
+  // While the run works its progress row is pushed as it changes; the results only come from the API, so
+  // the end (or a resync after the stream dropped) is read once.
+  const queryClient = useQueryClient()
+  const caseConnected = useCraftJobEvents(
+    pollActive ? activeCaseId : null,
+    (frame) => {
+      const row = frame.data
+      if (!row || ['succeeded', 'failed'].includes(row.Status)) {
+        becPollingCall.refetch()
+        return
+      }
+      queryClient.setQueryData(
+        [`execBECCheck-polling-${activeCaseId}`],
+        (old) => (old?.Waiting ? { ...old, Progress: row } : old)
+      )
+    }
+  )
   const becPollingCall = ApiGetCall({
     url: `/api/execBECCheck`,
     data: { GUID: activeCaseId, tenantFilter: tenant },
     queryKey: `execBECCheck-polling-${activeCaseId}`,
     waiting: !!activeCaseId,
-    refetchInterval: pollActive ? 5000 : false,
+    // Still read now and then while connected, in case the end frame is missed.
+    refetchInterval: pollActive ? (caseConnected ? 300000 : 5000) : false,
     staleTime: 0,
   })
 
@@ -115,7 +140,7 @@ const Page = () => {
         data: {
           tenantFilter: tenant,
           userid: userId,
-          userName: userRequest.data?.[0]?.userPrincipalName,
+          userName: userRequest.data?.Results?.[0]?.userPrincipalName,
         },
       },
       {
@@ -134,7 +159,7 @@ const Page = () => {
   useEffect(() => {
     if (
       router.query.start === 'true' &&
-      userRequest.data?.[0]?.userPrincipalName &&
+      userRequest.data?.Results?.[0]?.userPrincipalName &&
       !autoStartedRef.current &&
       !startRunCall.isPending
     ) {
@@ -214,7 +239,7 @@ const Page = () => {
     )
   }, [becData])
 
-  const userData = userRequest.data?.[0]
+  const userData = userRequest.data?.Results?.[0]
 
   // The case switcher, shown only when the user has more than one run. Lives in the triage header's
   // title spot; each option carries the date, level and the case id so it is unambiguous.
@@ -286,6 +311,7 @@ const Page = () => {
             startPending={startRunCall.isPending}
             onJumpToGroup={jumpToGroup}
             caseSelector={caseSelector}
+            relatedQueryKeys={[`ListBECReports-${tenant}-${userId}`]}
           />
         ) : (
           <CippBecRunStatusCard
@@ -298,7 +324,6 @@ const Page = () => {
             becData={becData}
             onStart={startRun}
             startPending={startRunCall.isPending}
-            windowDays={windowDays}
           />
         )}
         <CippApiResults apiObject={startRunCall} errorsOnly={true} />
@@ -325,7 +350,19 @@ const Page = () => {
           />
         )}
 
-        {becData && <CippBecRemediationHistory becData={becData} />}
+        {becData && (
+          <CippBecRemediationHistory
+            becData={becData}
+            tenantFilter={tenant}
+            userPrincipalName={userData?.userPrincipalName}
+            relatedQueryKeys={[`ListBECReports-${tenant}-${userId}`]}
+          />
+        )}
+        {runState === 'waiting' && (
+          <CippBecRemediationHistory
+            becData={{ Run: { Containment: poll?.Containment } }}
+          />
+        )}
 
         {becData && (
           <CippButtonCard

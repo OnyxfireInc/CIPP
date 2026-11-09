@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { Box, Container, Divider, Stack } from '@mui/material'
 import { styled } from '@mui/material/styles'
 import { useIsMobileLayout } from '../hooks/use-breakpoint'
@@ -19,9 +19,10 @@ import { SsoMigrationDialog } from '../components/CippComponents/SsoMigrationDia
 import { ForcedSsoMigrationDialog } from '../components/CippComponents/ForcedSsoMigrationDialog'
 import { SubscriptionEndedDialog } from '../components/CippComponents/SubscriptionEndedDialog'
 import { FailedPaymentDialog } from '../components/CippComponents/FailedPaymentDialog'
+import { LegacyInfrastructureDialog } from '../components/CippComponents/LegacyInfrastructureDialog'
 import { CippMaintenanceBanner } from '../components/CippComponents/CippMaintenanceBanner'
 import { CippImpersonationBanner } from '../components/CippComponents/CippImpersonationBanner'
-import { filterMenuItems } from '../utils/filter-menu-items'
+import { filterMenuItems, getHiddenPages } from '../utils/filter-menu-items'
 
 import {
   CHROME_TOP_OFFSET,
@@ -99,6 +100,7 @@ export const Layout = (props) => {
   const [menuItems, setMenuItems] = useState(nativeMenuItems)
   const lastUserSettingsUpdate = useRef(null)
   const currentTenant = settings?.currentTenant
+  const urlTenant = useSearchParams()?.get('tenantFilter')
   const [hideSidebar, setHideSidebar] = useState(false)
 
   const swaStatus = ApiGetCall({
@@ -131,21 +133,7 @@ export const Layout = (props) => {
       }
 
       // Get hidden pages from feature flags - only filter if we have valid data.
-      // A DISABLED flag hides its Pages (features gated behind the flag); an ENABLED
-      // flag hides its HidesPages (features it replaces - e.g. Baselines supersedes
-      // the classic Standards and Drift pages).
-      let hiddenPages = []
-      if (featureFlags.isSuccess && Array.isArray(featureFlags.data)) {
-        const disabledPages = featureFlags.data
-          .filter((flag) => flag.Enabled === false || flag.enabled === false)
-          .flatMap((flag) => flag.Pages || flag.pages || [])
-          .filter((page) => typeof page === 'string')
-        const replacedPages = featureFlags.data
-          .filter((flag) => flag.Enabled === true || flag.enabled === true)
-          .flatMap((flag) => flag.HidesPages || flag.hidesPages || [])
-          .filter((page) => typeof page === 'string')
-        hiddenPages = [...disabledPages, ...replacedPages]
-      }
+      const hiddenPages = featureFlags.isSuccess ? getHiddenPages(featureFlags.data) : []
 
       const filteredMenu = filterMenuItems(nativeMenuItems, {
         permissions: userPermissions,
@@ -242,6 +230,12 @@ export const Layout = (props) => {
     () => alertsAPI.data?.find((alert) => alert.maintenance === true) ?? null,
     [alertsAPI.data]
   )
+  // Legacy infrastructure warning, flagged "blocking" by the backend so it also raises a dialog
+  // that has to be sat through before the instance can be used.
+  const blockingAlert = useMemo(
+    () => alertsAPI.data?.find((alert) => alert.blocking === true) ?? null,
+    [alertsAPI.data]
+  )
 
   useEffect(() => {
     if (!hideSidebar && version.isFetched && !alertsAPI.isFetched) {
@@ -316,9 +310,12 @@ export const Layout = (props) => {
           <FailedPaymentDialog
             hostedFailedPayments={currentRole.data?.hostedFailedPayments}
           />
+          <LegacyInfrastructureDialog alert={blockingAlert} />
           <SsoMigrationDialog meData={currentRole.data} />
           <ForcedSsoMigrationDialog />
-          {(currentTenant === 'AllTenants' || !currentTenant) &&
+          {(currentTenant === 'AllTenants' ||
+            urlTenant === 'AllTenants' ||
+            !currentTenant) &&
           !allTenantsSupport ? (
             <Box sx={{ flexGrow: 1, py: 3 }}>
               <Container maxWidth={false}>

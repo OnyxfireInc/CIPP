@@ -214,8 +214,8 @@ export const CippBecContainmentDrawer = ({
   })
 
   // The run is a background task reporting per-action progress like offboarding does; once it finishes, refresh
-  // the case so the remediation history picks up the result. Memoized so CippApiResults does not
-  // re-arm the poll on every render.
+  // the case so the remediation history picks up the result, and the catalog so a copy cached before an
+  // upgrade cannot hide Release user. Memoized so CippApiResults does not re-arm the poll on every render.
   const queryClient = useQueryClient()
   const relatedKeysJoined = relatedQueryKeys.join('|')
   const jobProgress = useMemo(
@@ -224,7 +224,11 @@ export const CippBecContainmentDrawer = ({
       title: 'Remediation progress',
       url: (id) => `/api/ListOffboardingProgress?DeploymentId=${id}`,
       onComplete: () =>
-        [`execBECCheck-polling-${caseId}`, ...relatedKeysJoined.split('|')]
+        [
+          `execBECCheck-polling-${caseId}`,
+          'ListBECRemediationActions',
+          ...relatedKeysJoined.split('|'),
+        ]
           .filter(Boolean)
           .forEach((key) => queryClient.invalidateQueries({ queryKey: [key] })),
     }),
@@ -389,10 +393,13 @@ export const CippBecContainmentDrawer = ({
       >
         <Stack spacing={2}>
           <Alert severity="info">
-            Pick the actions and their targets, then run. Targets default to the
-            flagged findings of the{' '}
-            {caseId ? `run (case ${caseId})` : 'live tenant'}. Actions marked
-            Critical need the user&apos;s UPN typed below before they run.
+            {caseId && !becData
+              ? `The investigation (case ${caseId}) is still running, so targets come from the live tenant; the result is recorded on the case. `
+              : `Pick the actions and their targets, then run. Targets default to the flagged findings of the ${
+                  caseId ? `run (case ${caseId})` : 'live tenant'
+                }. `}
+            Actions marked Critical need the user&apos;s UPN typed below before
+            they run.
           </Alert>
           {catalogCall.isLoading && (
             <Typography variant="body2">Loading actions...</Typography>

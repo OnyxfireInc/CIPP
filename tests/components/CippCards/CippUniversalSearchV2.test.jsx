@@ -50,7 +50,10 @@ vi.mock('next/router', () => ({
 vi.mock('../../../src/hooks/use-permissions', () => ({
   // the page index filters by permission; 'Identity.User.Read' satisfies the config's
   // 'Identity.User.*' requirement so the Users pages exist to be found
-  usePermissions: () => ({ userPermissions: ['Identity.User.Read'], userRoles: ['superadmin'] }),
+  usePermissions: () => ({
+    userPermissions: ['Identity.User.Read', 'CIPP.Extension.Read'],
+    userRoles: ['superadmin'],
+  }),
 }))
 
 import { CippUniversalSearchV2 } from '../../../src/components/CippCards/CippUniversalSearchV2'
@@ -179,6 +182,20 @@ describe('CippUniversalSearchV2 keyboard selection', () => {
     await user.keyboard('{ArrowDown}{Enter}')
 
     expect(routerState.push).toHaveBeenCalledTimes(1)
+  })
+
+  it('finds an individual integration and opens its configure page', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<CippUniversalSearchV2 defaultSearchType="Pages" />)
+
+    await user.type(screen.getByPlaceholderText(/search pages/i), 'halo psa')
+    expect(await screen.findAllByRole('menuitem')).toHaveLength(1)
+
+    await user.keyboard('{Enter}')
+
+    expect(routerState.push).toHaveBeenCalledWith('/cipp/integrations/configure?id=HaloPSA', undefined, {
+      shallow: true,
+    })
   })
 })
 
@@ -337,5 +354,40 @@ describe('CippUniversalSearchV2 tenant scope', () => {
     await user.keyboard('{Tab}')
     expect(screen.getByPlaceholderText(/search tenants/i)).toBeInTheDocument()
     expect(tenantCalls().some((c) => c.waiting === true)).toBe(true)
+  })
+})
+
+describe('CippUniversalSearchV2 BitLocker scope', () => {
+  beforeEach(() => {
+    layoutState.isMobile = false
+    bookmarkState.bookmarks = []
+    apiState.byUrl = {
+      '/api/ExecBitlockerSearch': {
+        ...idle,
+        isSuccess: true,
+        data: { Results: [{ keyId: 'key-1', deviceId: 'dev-1', deviceName: 'LAPTOP-1' }] },
+      },
+    }
+  })
+
+  // The search dialog closes on confirm and unmounts this component, so the key drawer must be the parent's
+  it('hands the selected key to the parent along with closing the search', async () => {
+    const onBitlockerSelect = vi.fn()
+    const onConfirm = vi.fn()
+    const user = userEvent.setup()
+    renderWithProviders(
+      <CippUniversalSearchV2
+        defaultSearchType="BitLocker"
+        onConfirm={onConfirm}
+        onBitlockerSelect={onBitlockerSelect}
+      />
+    )
+
+    await user.type(screen.getByPlaceholderText(/search bitlocker/i), 'key-1')
+    await user.keyboard('{Enter}')
+    await user.click(await screen.findByText('LAPTOP-1'))
+
+    expect(onBitlockerSelect).toHaveBeenCalledWith({ searchTerm: 'key-1', searchType: 'keyId' })
+    expect(onConfirm).toHaveBeenCalled()
   })
 })
